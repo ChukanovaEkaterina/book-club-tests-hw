@@ -7,6 +7,7 @@ import models.logout.LogoutRequiredFieldErrorResponseModel;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import static io.qameta.allure.Allure.step;
 import static io.restassured.RestAssured.given;
 import static org.assertj.core.api.Assertions.assertThat;
 import static specs.BaseSpec.baseRequestSpec;
@@ -21,40 +22,49 @@ public class LogoutTests extends TestBase {
     public void successfulLogoutTest() {
         LoginBodyModel loginData = new LoginBodyModel(REGISTERED_USERNAME, REGISTERED_PASSWORD);
 
-        String refreshToken = given(baseRequestSpec)
-                .body(loginData)
-                .when()
-                .post("/auth/token/")
-                .then()
-                .spec(successfulLoginResponseSpec)
-                .extract().path("refresh");
+        String refreshToken = step("Авторизация и получение токена", () -> {
+            return given(baseRequestSpec)
+                    .body(loginData)
+                    .when()
+                    .post("/auth/token/")
+                    .then()
+                    .spec(successfulLoginResponseSpec)
+                    .extract().path("refresh");
+        });
 
         LogoutBodyModel logoutData = new LogoutBodyModel(refreshToken);
 
-        given(baseRequestSpec)
-                .body(logoutData)
-                .when()
-                .post("/auth/logout/")
-                .then()
-                .spec(successfulLogoutResponseSpec);
+        step("Успешный выход из системы", () -> {
+            given(baseRequestSpec)
+                    .body(logoutData)
+                    .when()
+                    .post("/auth/logout/")
+                    .then()
+                    .spec(successfulLogoutResponseSpec);
+        });
     }
 
     @Test
-    @DisplayName("Ошибка выходв: невалидный refreshToken")
+    @DisplayName("Ошибка выхода: невалидный refreshToken")
     public void logoutWithInvalidTokenTest() {
 
         LogoutBodyModel logoutData = new LogoutBodyModel(INVALID_REFRESH_TOKEN);
 
-        LogoutErrorResponseModel errorResponse = given(baseRequestSpec)
-                .body(logoutData)
-                .when()
-                .post("/auth/logout/")
-                .then()
-                .spec(invalidTokenLogoutResponseSpec)
-                .extract().as(LogoutErrorResponseModel.class);
+        LogoutErrorResponseModel errorResponse =
+                step("Отправка запроса выхода из системы с невалидным refreshToken", () -> {
+            return given(baseRequestSpec)
+                    .body(logoutData)
+                    .when()
+                    .post("/auth/logout/")
+                    .then()
+                    .spec(invalidTokenLogoutResponseSpec)
+                    .extract().as(LogoutErrorResponseModel.class);
+        });
 
-        assertThat(errorResponse.detail()).isEqualTo("Token is invalid");
-        assertThat(errorResponse.code()).isEqualTo("token_not_valid");
+        step("Проверка ошибки и сообщения о неверном token", () -> {
+            assertThat(errorResponse.detail()).isEqualTo("Token is invalid");
+            assertThat(errorResponse.code()).isEqualTo("token_not_valid");
+        });
     }
 
     @Test
@@ -63,35 +73,43 @@ public class LogoutTests extends TestBase {
 
         LoginBodyModel loginData = new LoginBodyModel(REGISTERED_USERNAME, REGISTERED_PASSWORD);
 
-        String refreshToken = given(baseRequestSpec)
-                .body(loginData)
-                .when()
-                .post("/auth/token/")
-                .then()
-                .spec(successfulLoginResponseSpec)
-                .extract().path("refresh");
+        String refreshToken = step("Авторизация и получение токенов", () -> {
+            return given(baseRequestSpec)
+                    .body(loginData)
+                    .when()
+                    .post("/auth/token/")
+                    .then()
+                    .spec(successfulLoginResponseSpec)
+                    .extract().path("refresh");
+        });
 
         LogoutBodyModel logoutData = new LogoutBodyModel(refreshToken);
 
         // Первый logout
-        given(baseRequestSpec)
-                .body(logoutData)
-                .when()
-                .post("/auth/logout/")
-                .then()
-                .spec(successfulLogoutResponseSpec);
+        step("Первый выход из системы", () -> {
+            given(baseRequestSpec)
+                    .body(logoutData)
+                    .when()
+                    .post("/auth/logout/")
+                    .then()
+                    .spec(successfulLogoutResponseSpec);
+        });
 
         // Второй logout
-        LogoutErrorResponseModel errorResponse = given(baseRequestSpec)
-                .body(logoutData)
-                .when()
-                .post("/auth/logout/")
-                .then()
-                .spec(invalidTokenLogoutResponseSpec)
-                .extract().as(LogoutErrorResponseModel.class);
+        LogoutErrorResponseModel errorResponse = step("Повторная попытка выхода из системы", () -> {
+            return given(baseRequestSpec)
+                    .body(logoutData)
+                    .when()
+                    .post("/auth/logout/")
+                    .then()
+                    .spec(invalidTokenLogoutResponseSpec)
+                    .extract().as(LogoutErrorResponseModel.class);
+        });
 
-        assertThat(errorResponse.detail()).isEqualTo("Token is blacklisted");
-        assertThat(errorResponse.code()).isEqualTo("token_not_valid");
+        step("Проверка ошибки и сообщения о token в blacklist", () -> {
+            assertThat(errorResponse.detail()).isEqualTo("Token is blacklisted");
+            assertThat(errorResponse.code()).isEqualTo("token_not_valid");
+        });
     }
 
     @Test
@@ -100,14 +118,18 @@ public class LogoutTests extends TestBase {
 
         String body = "{}";
 
-        LogoutRequiredFieldErrorResponseModel errorResponse = given(baseRequestSpec)
+        LogoutRequiredFieldErrorResponseModel errorResponse =
+                step("Отправка запроса выхода из системы с телом без refresh", () -> {
+        return given(baseRequestSpec)
                 .body(body)
                 .when()
                 .post("/auth/logout/")
                 .then()
                 .spec(withoutRefreshFieldLogoutResponseSpec)
                 .extract().as(LogoutRequiredFieldErrorResponseModel.class);
+    });
 
-        assertThat(errorResponse.refresh()).containsExactly("This field is required.");
+        step("Проверка ошибки и сообщения об обязательном наличии поля refresh", () ->
+        assertThat(errorResponse.refresh()).containsExactly("This field is required."));
     }
 }

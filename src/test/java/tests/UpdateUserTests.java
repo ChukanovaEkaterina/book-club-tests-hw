@@ -7,6 +7,7 @@ import models.user.UpdateUserResponseModel;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import static io.qameta.allure.Allure.step;
 import static org.assertj.core.api.Assertions.assertThat;
 import static io.restassured.RestAssured.given;
 import static specs.BaseSpec.baseRequestSpec;
@@ -21,13 +22,15 @@ public class UpdateUserTests extends TestBase {
     public void successfulUpdateUserTest() {
         LoginBodyModel loginData = new LoginBodyModel(REGISTERED_USERNAME, REGISTERED_PASSWORD);
 
-        String accessToken = given(baseRequestSpec)
+        String accessToken = step("Авторизация и получение токена", () -> {
+        return given(baseRequestSpec)
                 .body(loginData)
                 .when()
                 .post("/auth/token/")
                 .then()
                 .spec(successfulLoginResponseSpec)
                 .extract().path("access");
+    });
 
         UpdateUserBodyModel updateData = new UpdateUserBodyModel(
                 REGISTERED_USERNAME,
@@ -36,21 +39,25 @@ public class UpdateUserTests extends TestBase {
                 testData.updateEmail
         );
 
-        UpdateUserResponseModel response = given(baseRequestSpec)
-                .header("Authorization", "Bearer " + accessToken)
-                .body(updateData)
-                .when()
-                .put("/users/me/")
-                .then()
-                .spec(successfulUpdateUserResponseSpec)
-                .extract().as(UpdateUserResponseModel.class);
+        UpdateUserResponseModel response = step("Отправка запроса на обновление профиля методом PUT", () -> {
+                    return given(baseRequestSpec)
+                            .header("Authorization", "Bearer " + accessToken)
+                            .body(updateData)
+                            .when()
+                            .put("/users/me/")
+                            .then()
+                            .spec(successfulUpdateUserResponseSpec)
+                            .extract().as(UpdateUserResponseModel.class);
+                });
 
-        assertThat(response.id()).isGreaterThan(0);
-        assertThat(response.username()).isEqualTo(REGISTERED_USERNAME);
-        assertThat(response.firstName()).isEqualTo(testData.updateFirstName);
-        assertThat(response.lastName()).isEqualTo(testData.updateLastName);
-        assertThat(response.email()).isEqualTo(testData.updateEmail);
-        assertThat(response.remoteAddr()).isNotBlank();
+        step("Проверка обновленния данных профиля", () -> {
+            assertThat(response.id()).isGreaterThan(0);
+            assertThat(response.username()).isEqualTo(REGISTERED_USERNAME);
+            assertThat(response.firstName()).isEqualTo(testData.updateFirstName);
+            assertThat(response.lastName()).isEqualTo(testData.updateLastName);
+            assertThat(response.email()).isEqualTo(testData.updateEmail);
+            assertThat(response.remoteAddr()).isNotBlank();
+        });
     }
 
     @Test
@@ -58,13 +65,15 @@ public class UpdateUserTests extends TestBase {
     public void updateWithEmptyUsernameTest() {
         LoginBodyModel loginData = new LoginBodyModel(REGISTERED_USERNAME, REGISTERED_PASSWORD);
 
-        String accessToken = given(baseRequestSpec)
-                .body(loginData)
-                .when()
-                .post("/auth/token/")
-                .then()
-                .spec(successfulLoginResponseSpec)
-                .extract().path("access");
+        String accessToken = step("Авторизация и получение токена", () -> {
+            return given(baseRequestSpec)
+                    .body(loginData)
+                    .when()
+                    .post("/auth/token/")
+                    .then()
+                    .spec(successfulLoginResponseSpec)
+                    .extract().path("access");
+        });
 
         UpdateUserBodyModel updateData = new UpdateUserBodyModel(
                 "",
@@ -73,7 +82,9 @@ public class UpdateUserTests extends TestBase {
                 testData.updateEmail
         );
 
-        UpdateUserErrorResponseModel errorResponse = given(baseRequestSpec)
+        UpdateUserErrorResponseModel errorResponse =
+                step("Отправка запроса на обновление профиля с пустым username", () -> {
+        return given(baseRequestSpec)
                 .header("Authorization", "Bearer " + accessToken)
                 .body(updateData)
                 .when()
@@ -81,8 +92,11 @@ public class UpdateUserTests extends TestBase {
                 .then()
                 .spec(badRequestUpdateUserResponseSpec)
                 .extract().as(UpdateUserErrorResponseModel.class);
+    });
 
-        assertThat(errorResponse.username()).contains("This field may not be blank.");
+
+    step("Проверка ответа (400) и сообщения о пустом username", () ->
+        assertThat(errorResponse.username()).contains("This field may not be blank."));
     }
 
     @Test
@@ -95,13 +109,15 @@ public class UpdateUserTests extends TestBase {
                 testData.updateEmail
         );
 
-        given(baseRequestSpec)
-                .header("Authorization", "Bearer invalidToken")
-                .body(updateData)
-                .when()
-                .put("/users/me/")
-                .then()
-                .spec(unauthorizedUpdateUserResponseSpec);
+        step("Отправка запроса на обновление профиля с невалидным accessToken", () -> {
+            given(baseRequestSpec)
+                    .header("Authorization", "Bearer invalidToken")
+                    .body(updateData)
+                    .when()
+                    .put("/users/me/")
+                    .then()
+                    .spec(unauthorizedUpdateUserResponseSpec);
+        });
     }
 
     @Test
@@ -109,15 +125,19 @@ public class UpdateUserTests extends TestBase {
     public void updateWithEmptyBodyTest() {
         LoginBodyModel loginData = new LoginBodyModel(REGISTERED_USERNAME, REGISTERED_PASSWORD);
 
-        String accessToken = given(baseRequestSpec)
-                .body(loginData)
-                .when()
-                .post("/auth/token/")
-                .then()
-                .spec(successfulLoginResponseSpec)
-                .extract().path("access");
+        String accessToken = step("Авторизация и получение токена", () -> {
+            return given(baseRequestSpec)
+                    .body(loginData)
+                    .when()
+                    .post("/auth/token/")
+                    .then()
+                    .spec(successfulLoginResponseSpec)
+                    .extract().path("access");
+        });
 
-        UpdateUserErrorResponseModel errorResponse = given(baseRequestSpec)
+        UpdateUserErrorResponseModel errorResponse =
+                step("Отправка запроса на обновление профиля с пустым JSON)", () -> {
+        return given(baseRequestSpec)
                 .header("Authorization", "Bearer " + accessToken)
                 .body("{}")
                 .when()
@@ -125,11 +145,14 @@ public class UpdateUserTests extends TestBase {
                 .then()
                 .spec(badRequestUpdateUserResponseSpec)
                 .extract().as(UpdateUserErrorResponseModel.class);
+    });
 
-        assertThat(errorResponse.username()).contains("This field is required.");
-        assertThat(errorResponse.email()).contains("This field is required.");
-        assertThat(errorResponse.firstName()).contains("This field is required.");
-        assertThat(errorResponse.lastName()).contains("This field is required.");
+        step("Проверка ошибки 400 и сообщения об обязательном наличии полей", () -> {
+            assertThat(errorResponse.username()).contains("This field is required.");
+            assertThat(errorResponse.email()).contains("This field is required.");
+            assertThat(errorResponse.firstName()).contains("This field is required.");
+            assertThat(errorResponse.lastName()).contains("This field is required.");
+        });
     }
 
     @Test
@@ -137,13 +160,15 @@ public class UpdateUserTests extends TestBase {
     public void successfulPatchUserTest() {
         LoginBodyModel loginData = new LoginBodyModel(REGISTERED_USERNAME, REGISTERED_PASSWORD);
 
-        String accessToken = given(baseRequestSpec)
-                .body(loginData)
-                .when()
-                .post("/auth/token/")
-                .then()
-                .spec(successfulLoginResponseSpec)
-                .extract().path("access");
+        String accessToken = step("Авторизация и получение токена", () -> {
+                    return given(baseRequestSpec)
+                            .body(loginData)
+                            .when()
+                            .post("/auth/token/")
+                            .then()
+                            .spec(successfulLoginResponseSpec)
+                            .extract().path("access");
+                });
 
         UpdateUserBodyModel updateData = new UpdateUserBodyModel(
                 REGISTERED_USERNAME,
@@ -152,18 +177,22 @@ public class UpdateUserTests extends TestBase {
                 testData.updateEmail
         );
 
-        UpdateUserResponseModel response = given(baseRequestSpec)
-                .header("Authorization", "Bearer " + accessToken)
-                .body(updateData)
-                .when()
-                .patch("/users/me/")
-                .then()
-                .spec(successfulUpdateUserResponseSpec)
-                .extract().as(UpdateUserResponseModel.class);
+        UpdateUserResponseModel response = step("Отправка запроса на обновление профиля методом PATCH", () -> {
+                    return given(baseRequestSpec)
+                            .header("Authorization", "Bearer " + accessToken)
+                            .body(updateData)
+                            .when()
+                            .patch("/users/me/")
+                            .then()
+                            .spec(successfulUpdateUserResponseSpec)
+                            .extract().as(UpdateUserResponseModel.class);
+                });
 
-        assertThat(response.username()).isEqualTo(REGISTERED_USERNAME);
-        assertThat(response.firstName()).isEqualTo(testData.updateFirstName);
-        assertThat(response.lastName()).isEqualTo(testData.updateLastName);
-        assertThat(response.email()).isEqualTo(testData.updateEmail);
+        step("Проверка обновленния данных профиля", () -> {
+            assertThat(response.username()).isEqualTo(REGISTERED_USERNAME);
+            assertThat(response.firstName()).isEqualTo(testData.updateFirstName);
+            assertThat(response.lastName()).isEqualTo(testData.updateLastName);
+            assertThat(response.email()).isEqualTo(testData.updateEmail);
+        });
     }
 }
