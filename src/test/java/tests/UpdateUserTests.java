@@ -9,10 +9,6 @@ import org.junit.jupiter.api.Test;
 
 import static io.qameta.allure.Allure.step;
 import static org.assertj.core.api.Assertions.assertThat;
-import static io.restassured.RestAssured.given;
-import static specs.BaseSpec.baseRequestSpec;
-import static specs.LoginSpec.successfulLoginResponseSpec;
-import static specs.UserSpec.*;
 import static tests.TestData.*;
 
 public class UpdateUserTests extends TestBase {
@@ -22,15 +18,7 @@ public class UpdateUserTests extends TestBase {
     public void successfulUpdateUserTest() {
         LoginBodyModel loginData = new LoginBodyModel(REGISTERED_USERNAME, REGISTERED_PASSWORD);
 
-        String accessToken = step("Авторизация и получение токена", () -> {
-            return given(baseRequestSpec)
-                    .body(loginData)
-                    .when()
-                    .post("/auth/token/")
-                    .then()
-                    .spec(successfulLoginResponseSpec)
-                    .extract().path("access");
-        });
+        String accessToken = api.auth.getAccessToken(loginData);
 
         UpdateUserBodyModel updateData = new UpdateUserBodyModel(
                 REGISTERED_USERNAME,
@@ -39,16 +27,7 @@ public class UpdateUserTests extends TestBase {
                 testData.updateEmail
         );
 
-        UpdateUserResponseModel response = step("Отправка запроса на обновление профиля методом PUT", () -> {
-            return given(baseRequestSpec)
-                    .header("Authorization", "Bearer " + accessToken)
-                    .body(updateData)
-                    .when()
-                    .put("/users/me/")
-                    .then()
-                    .spec(successfulUpdateUserResponseSpec)
-                    .extract().as(UpdateUserResponseModel.class);
-        });
+        UpdateUserResponseModel response = api.users.successfulUpdateUserTest(updateData, accessToken);
 
         step("Проверка обновленния данных профиля", () -> {
             assertThat(response.id()).isGreaterThan(0);
@@ -65,15 +44,7 @@ public class UpdateUserTests extends TestBase {
     public void updateWithEmptyUsernameTest() {
         LoginBodyModel loginData = new LoginBodyModel(REGISTERED_USERNAME, REGISTERED_PASSWORD);
 
-        String accessToken = step("Авторизация и получение токена", () -> {
-            return given(baseRequestSpec)
-                    .body(loginData)
-                    .when()
-                    .post("/auth/token/")
-                    .then()
-                    .spec(successfulLoginResponseSpec)
-                    .extract().path("access");
-        });
+        String accessToken = api.auth.getAccessToken(loginData);
 
         UpdateUserBodyModel updateData = new UpdateUserBodyModel(
                 "",
@@ -83,16 +54,7 @@ public class UpdateUserTests extends TestBase {
         );
 
         UpdateUserErrorResponseModel errorResponse =
-                step("Отправка запроса на обновление профиля с пустым username", () -> {
-                    return given(baseRequestSpec)
-                            .header("Authorization", "Bearer " + accessToken)
-                            .body(updateData)
-                            .when()
-                            .put("/users/me/")
-                            .then()
-                            .spec(badRequestUpdateUserResponseSpec)
-                            .extract().as(UpdateUserErrorResponseModel.class);
-                });
+                api.users.updateWithEmptyUsernameTest(updateData, accessToken);
 
 
         step("Проверка ответа (400) и сообщения о пустом username", () ->
@@ -109,15 +71,7 @@ public class UpdateUserTests extends TestBase {
                 testData.updateEmail
         );
 
-        step("Отправка запроса на обновление профиля с невалидным accessToken", () -> {
-            given(baseRequestSpec)
-                    .header("Authorization", "Bearer invalidToken")
-                    .body(updateData)
-                    .when()
-                    .put("/users/me/")
-                    .then()
-                    .spec(unauthorizedUpdateUserResponseSpec);
-        });
+        api.users.updateWithInvalidTokenTest(updateData);
     }
 
     @Test
@@ -125,27 +79,10 @@ public class UpdateUserTests extends TestBase {
     public void updateWithEmptyBodyTest() {
         LoginBodyModel loginData = new LoginBodyModel(REGISTERED_USERNAME, REGISTERED_PASSWORD);
 
-        String accessToken = step("Авторизация и получение токена", () -> {
-            return given(baseRequestSpec)
-                    .body(loginData)
-                    .when()
-                    .post("/auth/token/")
-                    .then()
-                    .spec(successfulLoginResponseSpec)
-                    .extract().path("access");
-        });
+        String accessToken = api.auth.getAccessToken(loginData);
 
         UpdateUserErrorResponseModel errorResponse =
-                step("Отправка запроса на обновление профиля с пустым JSON)", () -> {
-                    return given(baseRequestSpec)
-                            .header("Authorization", "Bearer " + accessToken)
-                            .body("{}")
-                            .when()
-                            .put("/users/me/")
-                            .then()
-                            .spec(badRequestUpdateUserResponseSpec)
-                            .extract().as(UpdateUserErrorResponseModel.class);
-                });
+                api.users.updateWithEmptyBodyTest(accessToken);
 
         step("Проверка ошибки 400 и сообщения об обязательном наличии полей", () -> {
             assertThat(errorResponse.username()).contains("This field is required.");
@@ -160,15 +97,7 @@ public class UpdateUserTests extends TestBase {
     public void successfulPatchUserTest() {
         LoginBodyModel loginData = new LoginBodyModel(REGISTERED_USERNAME, REGISTERED_PASSWORD);
 
-        String accessToken = step("Авторизация и получение токена", () -> {
-            return given(baseRequestSpec)
-                    .body(loginData)
-                    .when()
-                    .post("/auth/token/")
-                    .then()
-                    .spec(successfulLoginResponseSpec)
-                    .extract().path("access");
-        });
+        String accessToken = api.auth.getAccessToken(loginData);
 
         UpdateUserBodyModel updateData = new UpdateUserBodyModel(
                 REGISTERED_USERNAME,
@@ -177,16 +106,7 @@ public class UpdateUserTests extends TestBase {
                 testData.updateEmail
         );
 
-        UpdateUserResponseModel response = step("Отправка запроса на обновление профиля методом PATCH", () -> {
-            return given(baseRequestSpec)
-                    .header("Authorization", "Bearer " + accessToken)
-                    .body(updateData)
-                    .when()
-                    .patch("/users/me/")
-                    .then()
-                    .spec(successfulUpdateUserResponseSpec)
-                    .extract().as(UpdateUserResponseModel.class);
-        });
+        UpdateUserResponseModel response = api.users.successfulPatchUserTest(updateData, accessToken);
 
         step("Проверка обновленния данных профиля", () -> {
             assertThat(response.username()).isEqualTo(REGISTERED_USERNAME);

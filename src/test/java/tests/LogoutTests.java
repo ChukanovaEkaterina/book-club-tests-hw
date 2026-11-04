@@ -8,11 +8,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import static io.qameta.allure.Allure.step;
-import static io.restassured.RestAssured.given;
 import static org.assertj.core.api.Assertions.assertThat;
-import static specs.BaseSpec.baseRequestSpec;
-import static specs.LoginSpec.successfulLoginResponseSpec;
-import static specs.LogoutSpec.*;
 import static tests.TestData.*;
 
 public class LogoutTests extends TestBase {
@@ -22,26 +18,11 @@ public class LogoutTests extends TestBase {
     public void successfulLogoutTest() {
         LoginBodyModel loginData = new LoginBodyModel(REGISTERED_USERNAME, REGISTERED_PASSWORD);
 
-        String refreshToken = step("Авторизация и получение токена", () -> {
-            return given(baseRequestSpec)
-                    .body(loginData)
-                    .when()
-                    .post("/auth/token/")
-                    .then()
-                    .spec(successfulLoginResponseSpec)
-                    .extract().path("refresh");
-        });
+        String refreshToken = api.auth.getRefreshToken(loginData);
 
         LogoutBodyModel logoutData = new LogoutBodyModel(refreshToken);
 
-        step("Успешный выход из системы", () -> {
-            given(baseRequestSpec)
-                    .body(logoutData)
-                    .when()
-                    .post("/auth/logout/")
-                    .then()
-                    .spec(successfulLogoutResponseSpec);
-        });
+        api.auth.logout(logoutData);
     }
 
     @Test
@@ -50,16 +31,7 @@ public class LogoutTests extends TestBase {
 
         LogoutBodyModel logoutData = new LogoutBodyModel(INVALID_REFRESH_TOKEN);
 
-        LogoutErrorResponseModel errorResponse =
-                step("Отправка запроса выхода из системы с невалидным refreshToken", () -> {
-            return given(baseRequestSpec)
-                    .body(logoutData)
-                    .when()
-                    .post("/auth/logout/")
-                    .then()
-                    .spec(invalidTokenLogoutResponseSpec)
-                    .extract().as(LogoutErrorResponseModel.class);
-        });
+        LogoutErrorResponseModel errorResponse = api.auth.logoutWithInvalidToken(logoutData);
 
         step("Проверка ошибки и сообщения о неверном token", () -> {
             assertThat(errorResponse.detail()).isEqualTo("Token is invalid");
@@ -73,38 +45,15 @@ public class LogoutTests extends TestBase {
 
         LoginBodyModel loginData = new LoginBodyModel(REGISTERED_USERNAME, REGISTERED_PASSWORD);
 
-        String refreshToken = step("Авторизация и получение токенов", () -> {
-            return given(baseRequestSpec)
-                    .body(loginData)
-                    .when()
-                    .post("/auth/token/")
-                    .then()
-                    .spec(successfulLoginResponseSpec)
-                    .extract().path("refresh");
-        });
+        String refreshToken = api.auth.getRefreshToken(loginData);
 
         LogoutBodyModel logoutData = new LogoutBodyModel(refreshToken);
 
         // Первый logout
-        step("Первый выход из системы", () -> {
-            given(baseRequestSpec)
-                    .body(logoutData)
-                    .when()
-                    .post("/auth/logout/")
-                    .then()
-                    .spec(successfulLogoutResponseSpec);
-        });
+        api.auth.logout(logoutData);
 
         // Второй logout
-        LogoutErrorResponseModel errorResponse = step("Повторная попытка выхода из системы", () -> {
-            return given(baseRequestSpec)
-                    .body(logoutData)
-                    .when()
-                    .post("/auth/logout/")
-                    .then()
-                    .spec(invalidTokenLogoutResponseSpec)
-                    .extract().as(LogoutErrorResponseModel.class);
-        });
+        LogoutErrorResponseModel errorResponse = api.auth.logoutWithInvalidToken(logoutData);
 
         step("Проверка ошибки и сообщения о token в blacklist", () -> {
             assertThat(errorResponse.detail()).isEqualTo("Token is blacklisted");
@@ -118,18 +67,9 @@ public class LogoutTests extends TestBase {
 
         String body = "{}";
 
-        LogoutRequiredFieldErrorResponseModel errorResponse =
-                step("Отправка запроса выхода из системы с телом без refresh", () -> {
-        return given(baseRequestSpec)
-                .body(body)
-                .when()
-                .post("/auth/logout/")
-                .then()
-                .spec(withoutRefreshFieldLogoutResponseSpec)
-                .extract().as(LogoutRequiredFieldErrorResponseModel.class);
-    });
+        LogoutRequiredFieldErrorResponseModel errorResponse = api.auth.logoutWithoutRefreshField(body);
 
         step("Проверка ошибки и сообщения об обязательном наличии поля refresh", () ->
-        assertThat(errorResponse.refresh()).containsExactly("This field is required."));
+                assertThat(errorResponse.refresh()).containsExactly("This field is required."));
     }
 }
