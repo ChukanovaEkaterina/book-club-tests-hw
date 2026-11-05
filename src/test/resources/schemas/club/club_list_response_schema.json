@@ -1,0 +1,166 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": [
+    "count",
+    "results"
+  ],
+  "properties": {
+    "count": {
+      "type": "integer"
+    },
+    "next": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "uri"
+    },
+    "previous": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "uri"
+    },
+    "results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "bookTitle": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "bookAuthors": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "publicationYear": {
+            "type": "integer",
+            "maximum": 2147483647,
+            "minimum": -2147483648
+          },
+          "description": {
+            "type": "string"
+          },
+          "telegramChatLink": {
+            "type": "string",
+            "format": "uri",
+            "maxLength": 200
+          },
+          "owner": {
+            "type": "integer"
+          },
+          "members": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "reviews": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "integer"
+                },
+                "club": {
+                  "type": "integer"
+                },
+                "user": {
+                  "allOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "integer"
+                        },
+                        "username": {
+                          "type": "string",
+                          "description": "Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only.",
+                          "pattern": "^[\\w.@+-]+$",
+                          "maxLength": 150
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "username"
+                      ],
+                      "additionalProperties": false
+                    }
+                  ]
+                },
+                "review": {
+                  "type": "string"
+                },
+                "assessment": {
+                  "type": "integer",
+                  "maximum": 5,
+                  "minimum": 1
+                },
+                "readPages": {
+                  "type": "integer",
+                  "maximum": 2147483647,
+                  "minimum": -2147483648
+                },
+                "created": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "modified": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date-time"
+                }
+              },
+              "required": [
+                "assessment",
+                "club",
+                "created",
+                "id",
+                "modified",
+                "readPages",
+                "review",
+                "user"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "created": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "modified": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "bookAuthors",
+          "bookTitle",
+          "created",
+          "description",
+          "id",
+          "members",
+          "modified",
+          "owner",
+          "publicationYear",
+          "reviews",
+          "telegramChatLink"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}
