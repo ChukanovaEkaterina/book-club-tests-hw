@@ -13,25 +13,14 @@ import static specs.RegistrationSpec.errorRegistrationResponseSpec;
 public class RegistrationApiClient {
 
     @Step("Регистрация нового пользователя")
-    public void register(RegistrationBodyModel registrationBody) {
-        given(baseRequestSpec)
+    public RegistrationResponseModel register(RegistrationBodyModel registrationBody) {
+        return given(baseRequestSpec)
                 .body(registrationBody)
                 .when()
                 .post("/users/register/")
                 .then()
-                .spec(successfulRegistrationResponseSpec);
-    }
-
-    @Step("Отправка запроса на регистрацию ")
-    public RegistrationResponseModel successfulRegistrationResponseTest(RegistrationBodyModel registrationData) {
-        return given(baseRequestSpec)
-                .body(registrationData)
-                .when()
-                .post("/users/register/")
-                .then()
                 .spec(successfulRegistrationResponseSpec)
-                .extract()
-                .as(RegistrationResponseModel.class);
+                .extract().as(RegistrationResponseModel.class);
     }
 
     @Step("Отправка запроса на регистрацию с пустым username")

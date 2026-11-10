@@ -1,89 +1,80 @@
 package api;
 
 import io.qameta.allure.Step;
-import models.club.ClubListResponseModel;
-import models.club.ClubListErrorResponseModel;
+import io.restassured.response.Response;
 import models.club.ClubBodyModel;
 import models.club.ClubResponseModel;
-import models.club.UpdateClubBodyModel;
+import models.club.ClubListResponseModel;
+
+import java.util.Map;
 
 import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.emptyString;
 import static specs.BaseSpec.baseRequestSpec;
-import static specs.ClubSpec.successfulClubListResponseSpec;
-import static specs.ClubSpec.invalidPageClubListResponseSpec;
-import static specs.ClubSpec.successfulCreateClubResponseSpec;
-import static specs.ClubSpec.successfulUpdateClubResponseSpec;
-import static specs.ClubSpec.successfulDeleteClubResponseSpec;
-import static specs.ClubSpec.clubNotFoundResponseSpec;
+import static specs.ClubSpec.*;
 
 public class ClubApiClient {
 
-    @Step("Отправка запроса на получение списка клубов")
-    public ClubListResponseModel successfulClubListTest() {
+    @Step("Получить список клубов")
+    public ClubListResponseModel list(Map<String, ?> query) {
         return given(baseRequestSpec)
+                .queryParams(query)
                 .when()
                 .get("/clubs/")
                 .then()
                 .spec(successfulClubListResponseSpec)
-                .extract().as(ClubListResponseModel.class);
+                .extract()
+                .as(ClubListResponseModel.class);
     }
 
-    @Step("Отправка запроса на получение списка клубов с нулевым номером страницы")
-    public ClubListErrorResponseModel clubListWithZeroPageTest() {
+    @Step("Получить клуб")
+    public Response get(int id, int expectedStatus) {
         return given(baseRequestSpec)
-                .queryParam("page", 0)
+                .pathParam("id", id)
                 .when()
-                .get("/clubs/")
+                .get("/clubs/{id}/")
                 .then()
-                .spec(invalidPageClubListResponseSpec)
-                .extract().as(ClubListErrorResponseModel.class);
+                .statusCode(expectedStatus)
+                .extract()
+                .response();
     }
 
-    @Step("Отправка запроса на создание клуба")
-    public ClubResponseModel successfulCreateClubTest(ClubBodyModel clubData, String accessToken) {
+    @Step("Создать клуб")
+    public ClubResponseModel create(ClubBodyModel body, String accessToken) {
         return given(baseRequestSpec)
                 .header("Authorization", "Bearer " + accessToken)
-                .body(clubData)
+                .body(body)
                 .when()
                 .post("/clubs/")
                 .then()
                 .spec(successfulCreateClubResponseSpec)
-                .extract().as(ClubResponseModel.class);
+                .extract()
+                .as(ClubResponseModel.class);
     }
 
-    @Step("Отправка запроса на обновление клуба методом PUT")
-    public ClubResponseModel successfulUpdateClubTest(UpdateClubBodyModel updateData, int id, String accessToken) {
+    @Step("Обновить клуб методом PUT")
+    public ClubResponseModel update(ClubBodyModel body, int id, String accessToken) {
         return given(baseRequestSpec)
                 .header("Authorization", "Bearer " + accessToken)
                 .pathParam("id", id)
-                .body(updateData)
+                .body(body)
                 .when()
                 .put("/clubs/{id}/")
                 .then()
                 .spec(successfulUpdateClubResponseSpec)
-                .extract().as(ClubResponseModel.class);
+                .extract()
+                .as(ClubResponseModel.class);
     }
 
-    @Step("Отправка запроса на удаление клуба методом DELETE")
-    public void successfulDeleteClubTest(int id, String accessToken) {
+    @Step("Удалить клуб")
+    public void delete(int id, String accessToken) {
         given(baseRequestSpec)
                 .header("Authorization", "Bearer " + accessToken)
                 .pathParam("id", id)
                 .when()
                 .delete("/clubs/{id}/")
                 .then()
-                .spec(successfulDeleteClubResponseSpec);
-    }
-
-    @Step("Отправка запроса на получение удаленного клуба")
-    public ClubListErrorResponseModel getDeletedClub(int id, String accessToken) {
-        return given(baseRequestSpec)
-                .header("Authorization", "Bearer " + accessToken)
-                .pathParam("id", id)
-                .when()
-                .get("/clubs/{id}/")
-                .then()
-                .spec(clubNotFoundResponseSpec)
-                .extract().as(ClubListErrorResponseModel.class);
+                .statusCode(204)
+                .body(emptyString());
     }
 }

@@ -1,6 +1,7 @@
 package models.club;
 
 import java.util.List;
+import models.reviews.ReviewResponseModel;
 
 public record ClubResponseModel(
         int id,
@@ -11,7 +12,7 @@ public record ClubResponseModel(
         String telegramChatLink,
         int owner,
         List<Integer> members,
-        List<BookReviewResponseModel> reviews,
+        List<ReviewResponseModel> reviews,
         String created,
         String modified
 ) {}

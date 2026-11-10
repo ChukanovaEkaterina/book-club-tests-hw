@@ -32,13 +32,7 @@ public class AuthApiClient {
 
     @Step("Авторизация и получение токена")
     public String getRefreshToken(LoginBodyModel loginBody) {
-        return given(baseRequestSpec)
-                .body(loginBody)
-                .when()
-                .post("/auth/token/")
-                .then()
-                .spec(successfulLoginResponseSpec)
-                .extract().path("refresh");
+        return login(loginBody).refresh();
     }
 
     @Step("Авторизация с неверным логином или паролем")
@@ -108,12 +102,6 @@ public class AuthApiClient {
 
     @Step("Авторизация и получение токена")
     public String getAccessToken(LoginBodyModel loginData) {
-        return given(baseRequestSpec)
-                .body(loginData)
-                .when()
-                .post("/auth/token/")
-                .then()
-                .spec(successfulLoginResponseSpec)
-                .extract().path("access");
+        return login(loginData).access();
     }
 }

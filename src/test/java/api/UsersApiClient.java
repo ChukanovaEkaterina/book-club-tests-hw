@@ -10,7 +10,6 @@ import static specs.BaseSpec.baseRequestSpec;
 import static specs.UserSpec.*;
 
 public class UsersApiClient {
-
     @Step("Отправка запроса на обновление профиля методом PUT")
     public UpdateUserResponseModel successfulUpdateUserTest(UpdateUserBodyModel updateData, String accessToken) {
         return given(baseRequestSpec)

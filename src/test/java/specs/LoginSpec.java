@@ -25,5 +25,4 @@ public class LoginSpec {
             .expectBody(matchesJsonSchemaInClasspath("schemas/login/login_error_empty_field_schema.json"))
             .log(ALL)
             .build();
-
 }

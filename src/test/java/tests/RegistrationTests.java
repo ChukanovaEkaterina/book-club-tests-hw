@@ -16,7 +16,7 @@ public class RegistrationTests extends TestBase {
     public void successfulRegistrationResponseTest() {
         RegistrationBodyModel registrationData = new RegistrationBodyModel(testData.username, testData.password);
 
-        RegistrationResponseModel registrationResponse = api.registration.successfulRegistrationResponseTest(registrationData);
+        RegistrationResponseModel registrationResponse = api.registration.register(registrationData);
 
         step("Проверка данных зарегистрированного пользователя", () -> {
             assertThat(registrationResponse.username()).isEqualTo(registrationData.username());
@@ -45,5 +45,4 @@ public class RegistrationTests extends TestBase {
         step("Проверка ответа 400 и сообщения о пустом password", () ->
                 assertThat(errorResponse.password()).containsExactly("This field may not be blank."));
     }
-
 }

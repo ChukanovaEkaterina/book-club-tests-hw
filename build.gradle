@@ -22,6 +22,8 @@ version = '1.0-SNAPSHOT'
 
 dependencies {
     testImplementation (
+            "com.codeborne:selenide:7.19.1",
+            "io.qameta.allure:allure-selenide:$allureVersion",
             "io.rest-assured:rest-assured:$restAssuredVersion",
             "io.rest-assured:json-schema-validator:$jsonSchemaValidatorVersion",
             "org.junit.jupiter:junit-jupiter:5.14.2",
@@ -36,17 +38,50 @@ dependencies {
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
+    options.release = 17
 }
 
 tasks.withType(Test) {
     useJUnitPlatform()
     systemProperties(System.getProperties())
-    ignoreFailures = true
+    ignoreFailures = false
 
     testLogging {
         lifecycle {
-            events  = ["started", "skipped", "failed", "standard_error", "standard_out"]
+            events  = ["started", "skipped", "failed"]
             exceptionFormat = "short"
+        }
+    }
+}
+// Separate suites for local runs and Jenkins. `test` runs everything.
+tasks.register('apiTest', Test) {
+    description = 'Run API tests'
+    group = 'verification'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    exclude 'tests/ui/**'
+}
+tasks.register('uiTest', Test) {
+    description = 'Run UI tests with API preparation'
+    group = 'verification'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    include 'tests/ui/**'
+}
+
+// Metadata appears on the Allure overview; never include credentials or tokens.
+tasks.withType(Test).configureEach {
+    doFirst {
+        def results = layout.buildDirectory.dir('allure-results').get().asFile
+        results.mkdirs()
+        new File(results, 'environment.properties').text =
+                "BaseUrl=${System.getProperty('baseUrl', 'https://book-club.qa.guru')}\n" +
+                "Java=${System.getProperty('java.version')}\n" +
+                "Browser=${System.getProperty('browser', 'chrome')}\n" +
+                "Headless=${System.getProperty('headless', 'true')}\n"
+        copy {
+            from 'src/test/resources/allure/categories.json'
+            into results
         }
     }
 }

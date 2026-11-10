@@ -2,15 +2,13 @@ package tests;
 
 import net.datafaker.Faker;
 import java.util.UUID;
-import java.util.List;
-import java.util.Map;
 
 public class TestData {
     private final Faker faker = new Faker();
 
-    public String username = "Chukanova" + faker.name().firstName();
+    public String username = "Chukanova" + UUID.randomUUID().toString().replace("-", "");
     public String password = faker.name().firstName();
-    public String wrongPassword = faker.name().firstName();
+    public String wrongPassword = password + "_wrong";
     public static final String EMPTY_USERNAME = "";
     public static final String EMPTY_PASSWORD = "";
     public static final String FIXED_TOKEN_PART = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9";

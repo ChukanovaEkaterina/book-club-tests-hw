@@ -1,25 +1,26 @@
 package tests;
 
 import models.club.ClubListResponseModel;
-import models.club.ClubListErrorResponseModel;
 import models.club.ClubBodyModel;
 import models.club.ClubResponseModel;
-import models.club.UpdateClubBodyModel;
 import models.login.LoginBodyModel;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-
+import java.util.Map;
 import static io.qameta.allure.Allure.step;
 import static org.assertj.core.api.Assertions.assertThat;
+import static specs.ClubSpec.*;
 import static tests.TestData.REGISTERED_USERNAME;
 import static tests.TestData.REGISTERED_PASSWORD;
+import static io.restassured.RestAssured.given;
+import static specs.BaseSpec.baseRequestSpec;
 
 public class ClubTests extends TestBase {
 
     @Test
     @DisplayName("Успешное получение списка клубов")
     public void successfulClubListTest() {
-        ClubListResponseModel response = api.clubs.successfulClubListTest();
+        ClubListResponseModel response = api.clubs.list(Map.of());
 
         step("Проверка данных списка клубов", () -> {
             assertThat(response.count()).isGreaterThanOrEqualTo(0);
@@ -37,10 +38,16 @@ public class ClubTests extends TestBase {
     @Test
     @DisplayName("Ошибка получения списка клубов: нулевой номер страницы")
     public void clubListWithZeroPageTest() {
-        ClubListErrorResponseModel errorResponse = api.clubs.clubListWithZeroPageTest();
+        String detail = given(baseRequestSpec)
+                .queryParam("page", 0)
+                .get("/clubs/")
+                .then()
+                .spec(invalidPageClubListResponseSpec)
+                .extract()
+                .path("detail");
 
         step("Проверка ошибки 404 и сообщения о неверной странице", () ->
-                assertThat(errorResponse.detail()).isEqualTo("Invalid page."));
+                assertThat(detail).isEqualTo("Invalid page."));
     }
 
     @Test
@@ -57,7 +64,7 @@ public class ClubTests extends TestBase {
                 testData.TELEGRAM_CHAT_LINK
         );
 
-        ClubResponseModel response = api.clubs.successfulCreateClubTest(clubData, accessToken);
+        ClubResponseModel response = api.clubs.create(clubData, accessToken);
 
         step("Проверка данных созданного клуба", () -> {
             assertThat(response.id()).isGreaterThan(0);
@@ -86,9 +93,9 @@ public class ClubTests extends TestBase {
                 testData.description,
                 testData.TELEGRAM_CHAT_LINK
         );
-        ClubResponseModel createdClub = api.clubs.successfulCreateClubTest(clubData, accessToken);
+        ClubResponseModel createdClub = api.clubs.create(clubData, accessToken);
 
-        UpdateClubBodyModel updateData = new UpdateClubBodyModel(
+        ClubBodyModel updateData = new ClubBodyModel(
                 testData.updateBookTitle,
                 testData.updateBookAuthors,
                 testData.updatePublicationYear,
@@ -96,7 +103,7 @@ public class ClubTests extends TestBase {
                 testData.UPDATE_TELEGRAM_CHAT_LINK
         );
 
-        ClubResponseModel response = api.clubs.successfulUpdateClubTest(updateData, createdClub.id(), accessToken);
+        ClubResponseModel response = api.clubs.update(updateData, createdClub.id(), accessToken);
 
         step("Проверка данных обновленного клуба", () -> {
             assertThat(response.id()).isEqualTo(createdClub.id());
@@ -126,13 +133,13 @@ public class ClubTests extends TestBase {
                 testData.description,
                 testData.TELEGRAM_CHAT_LINK
         );
-        ClubResponseModel createdClub = api.clubs.successfulCreateClubTest(clubData, accessToken);
+        ClubResponseModel createdClub = api.clubs.create(clubData, accessToken);
 
-        api.clubs.successfulDeleteClubTest(createdClub.id(), accessToken);
+        api.clubs.delete(createdClub.id(), accessToken);
 
-        ClubListErrorResponseModel errorResponse = api.clubs.getDeletedClub(createdClub.id(), accessToken);
+        String detail = api.clubs.get(createdClub.id(), 404).path("detail");
 
         step("Проверка ошибки 404 и сообщения о том, что клуб не найден", () ->
-                assertThat(errorResponse.detail()).isEqualTo("No Club matches the given query."));
+                assertThat(detail).isEqualTo("No Club matches the given query."));
     }
 }

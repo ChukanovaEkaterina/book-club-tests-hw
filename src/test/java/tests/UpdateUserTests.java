@@ -56,7 +56,6 @@ public class UpdateUserTests extends TestBase {
         UpdateUserErrorResponseModel errorResponse =
                 api.users.updateWithEmptyUsernameTest(updateData, accessToken);
 
-
         step("Проверка ответа (400) и сообщения о пустом username", () ->
                 assertThat(errorResponse.username()).contains("This field may not be blank."));
     }
